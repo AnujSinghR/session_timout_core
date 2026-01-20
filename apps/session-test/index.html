@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Core Test</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Session Core Test</h1>
+        <div class="status-card">
+            <h2>Current State</h2>
+            <div id="status" class="status-indicator">initializing...</div>
+        </div>
+
+        <div class="controls">
+            <button id="logoutBtn">Logout</button>
+            <button id="resetOnlyBtn">Reset (Emit Active)</button>
+        </div>
+
+        <div class="logs">
+            <h3>Logs</h3>
+            <ul id="logList"></ul>
+        </div>
+
+        <div class="info">
+            <p><strong>Instructions:</strong></p>
+            <ol>
+                <li>Open this page in a new tab/window to test Cross-Tab Sync.</li>
+                <li>Wait 5 seconds for IDLE state.</li>
+                <li>Wait 15 seconds (total) for EXPIRED state.</li>
+                <li>Move mouse/click on one tab to see it Sync to ACTIVE on both.</li>
+                <li>Click Logout to see LOGGED_OUT on both.</li>
+            </ol>
+        </div>
+    </div>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
