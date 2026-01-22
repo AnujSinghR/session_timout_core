@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Management POC - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .config-section h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .config-item input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .config-item input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .status-section {
+            margin-bottom: 30px;
+        }
+
+        .status-section h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-stopped {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .event-log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .event-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .event-log::-webkit-scrollbar-track {
+            background: #2d2d2d;
+            border-radius: 4px;
+        }
+
+        .event-log::-webkit-scrollbar-thumb {
+            background: #666;
+            border-radius: 4px;
+        }
+
+        .event-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-left: 3px solid #555;
+            padding-left: 12px;
+        }
+
+        .event-active {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .event-warning {
+            border-left-color: #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+        }
+
+        .event-expired {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .event-synced {
+            border-left-color: #17a2b8;
+            background: rgba(23, 162, 184, 0.1);
+        }
+
+        .event-refreshed {
+            border-left-color: #6610f2;
+            background: rgba(102, 16, 242, 0.1);
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 400px;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .modal h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instructions li {
+            color: #555;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .instructions li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Session Management POC</h1>
+        <p class="subtitle">Framework-Agnostic Session Engine Demo</p>
+
+        <div class="instructions">
+            <h3>📋 Testing Instructions</h3>
+            <ul>
+                <li>Configure timeout values below (in seconds for easy testing)</li>
+                <li>Click <strong>"Start Session"</strong> to begin</li>
+                <li>Move your mouse/type to simulate activity</li>
+                <li>Stop activity to trigger idle warning and expiration</li>
+                <li>Open this page in multiple tabs to test cross-tab sync</li>
+            </ul>
+        </div>
+
+        <div class="config-section">
+            <h2>⚙️ Session Configuration</h2>
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>Idle Timeout (seconds)</label>
+                    <input type="number" id="idleTimeout" value="30" min="5">
+                </div>
+                <div class="config-item">
+                    <label>Absolute Timeout (seconds)</label>
+                    <input type="number" id="absoluteTimeout" value="120" min="10">
+                </div>
+                <div class="config-item">
+                    <label>Warning Before (seconds)</label>
+                    <input type="number" id="warningBefore" value="10" min="1">
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="startBtn">▶️ Start Session</button>
+            <button class="btn-danger" id="stopBtn" disabled>⏹️ Stop Session</button>
+            <button class="btn-success" id="extendBtn" disabled>⏰ Extend Session</button>
+            <button class="btn-warning" id="clearLogBtn">🗑️ Clear Log</button>
+        </div>
+
+        <div class="status-section">
+            <h2>📊 Session Status</h2>
+            <div class="status-badge status-stopped" id="statusBadge">Stopped</div>
+        </div>
+
+        <div class="status-section">
+            <h2>📝 Event Log</h2>
+            <div class="event-log" id="eventLog">
+                <div style="color: #888; text-align: center; padding: 20px;">
+                    Waiting for session to start...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warning Modal -->
+    <div class="modal" id="warningModal">
+        <div class="modal-content">
+            <div class="modal-icon">⚠️</div>
+            <h3>Session Expiring Soon!</h3>
+            <p>Your session will expire in <strong id="remainingTime">--</strong> seconds due to inactivity.</p>
+            <button class="btn-success" id="stayLoggedInBtn">Stay Logged In</button>
+        </div>
+    </div>
+
+    <!-- Expired Modal -->
+    <div class="modal" id="expiredModal">
+        <div class="modal-content">
+            <div class="modal-icon">🚫</div>
+            <h3>Session Expired</h3>
+            <p id="expiredReason">Your session has expired.</p>
+            <button class="btn-primary" id="restartBtn">Restart Session</button>
+        </div>
+    </div>
+
+    <!-- Load RxJS from CDN -->
+    <script src="https://unpkg.com/rxjs@7.8.1/dist/bundles/rxjs.umd.min.js"></script>
+    <script type="importmap">
+{
+  "imports": {
+    "rxjs": "https://esm.sh/rxjs",
+    "rxjs/operators": "https://esm.sh/rxjs/operators"
+  }
+}
+</script>
+    <!-- Load compiled session-core package -->
+    <script type="module">
+        // Import from the built package
+        import { SessionEngine, SessionEventType } from './dist/index.js';
+
+        let engine = null;
+        let eventLogEntries = [];
+
+        const elements = {
+            startBtn: document.getElementById('startBtn'),
+            stopBtn: document.getElementById('stopBtn'),
+            extendBtn: document.getElementById('extendBtn'),
+            clearLogBtn: document.getElementById('clearLogBtn'),
+            idleTimeout: document.getElementById('idleTimeout'),
+            absoluteTimeout: document.getElementById('absoluteTimeout'),
+            warningBefore: document.getElementById('warningBefore'),
+            statusBadge: document.getElementById('statusBadge'),
+            eventLog: document.getElementById('eventLog'),
+            warningModal: document.getElementById('warningModal'),
+            expiredModal: document.getElementById('expiredModal'),
+            remainingTime: document.getElementById('remainingTime'),
+            expiredReason: document.getElementById('expiredReason'),
+            stayLoggedInBtn: document.getElementById('stayLoggedInBtn'),
+            restartBtn: document.getElementById('restartBtn')
+        };
+
+        function logEvent(event) {
+            const timestamp = new Date(event.timestamp).toLocaleTimeString();
+            let cssClass = '';
+            let message = '';
+
+            switch (event.type) {
+                case SessionEventType.ACTIVE:
+                    cssClass = 'event-active';
+                    message = `🟢 ACTIVE - User activity detected`;
+                    updateStatus('active');
+                    break;
+                case SessionEventType.IDLE_WARNING:
+                    cssClass = 'event-warning';
+                    message = `⚠️ IDLE_WARNING - ${Math.floor(event.remainingMs / 1000)}s remaining`;
+                    updateStatus('warning');
+                    showWarningModal(event.remainingMs);
+                    break;
+                case SessionEventType.SESSION_EXPIRED:
+                    cssClass = 'event-expired';
+                    message = `🔴 SESSION_EXPIRED - Reason: ${event.reason}`;
+                    updateStatus('expired');
+                    showExpiredModal(event.reason);
+                    break;
+                case SessionEventType.TOKEN_REFRESHED:
+                    cssClass = 'event-refreshed';
+                    message = `🔄 TOKEN_REFRESHED`;
+                    break;
+                case SessionEventType.SESSION_SYNCED:
+                    cssClass = 'event-synced';
+                    message = `🔗 SESSION_SYNCED - From another tab (${event.syncType})`;
+                    if (event.syncType === 'expired') {
+                        updateStatus('expired');
+                        showExpiredModal('cross-tab logout');
+                    }
+                    break;
+            }
+
+            const entry = `
+                <div class="event-entry ${cssClass}">
+                    <div><strong>${message}</strong></div>
+                    <div class="timestamp">${timestamp}</div>
+                </div>
+            `;
+
+            eventLogEntries.unshift(entry);
+            elements.eventLog.innerHTML = eventLogEntries.join('');
+            
+            console.log(`[SessionEngine] ${message}`, event);
+        }
+
+        function updateStatus(status) {
+            elements.statusBadge.className = 'status-badge';
+            switch (status) {
+                case 'active':
+                    elements.statusBadge.classList.add('status-active');
+                    elements.statusBadge.textContent = '✅ Active';
+                    break;
+                case 'warning':
+                    elements.statusBadge.classList.add('status-warning');
+                    elements.statusBadge.textContent = '⚠️ Warning - Expiring Soon';
+                    break;
+                case 'expired':
+                    elements.statusBadge.classList.add('status-expired');
+                    elements.statusBadge.textContent = '🔴 Expired';
+                    break;
+                default:
+                    elements.statusBadge.classList.add('status-stopped');
+                    elements.statusBadge.textContent = '⏸️ Stopped';
+            }
+        }
+
+        function showWarningModal(remainingMs) {
+            elements.remainingTime.textContent = Math.floor(remainingMs / 1000);
+            elements.warningModal.classList.add('show');
+        }
+
+        function hideWarningModal() {
+            elements.warningModal.classList.remove('show');
+        }
+
+        function showExpiredModal(reason) {
+            elements.expiredReason.textContent = 
+                reason === 'idle' 
+                    ? 'Your session expired due to inactivity.'
+                    : reason === 'absolute'
+                        ? 'Maximum session time reached.'
+                        : 'Session was expired from another tab.';
+            elements.expiredModal.classList.add('show');
+            hideWarningModal();
+        }
+
+        function hideExpiredModal() {
+            elements.expiredModal.classList.remove('show');
+        }
+
+        function startSession() {
+            const policy = {
+                idleTimeoutMs: parseInt(elements.idleTimeout.value) * 1000,
+                absoluteTimeoutMs: parseInt(elements.absoluteTimeout.value) * 1000,
+                warningBeforeMs: parseInt(elements.warningBefore.value) * 1000,
+                refreshToken: async () => {
+                    console.log('Token refresh triggered');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            };
+
+            engine = new SessionEngine(policy);
+            engine.start();
+
+            engine.events().subscribe(event => logEvent(event));
+
+            elements.startBtn.disabled = true;
+            elements.stopBtn.disabled = false;
+            elements.extendBtn.disabled = false;
+            elements.idleTimeout.disabled = true;
+            elements.absoluteTimeout.disabled = true;
+            elements.warningBefore.disabled = true;
+
+            updateStatus('active');
+            logEvent({ 
+                type: 'INFO', 
+                timestamp: Date.now(), 
+                message: 'Session started' 
+            });
+        }
+
+        function stopSession() {
+            if (engine) {
+                engine.stop();
+                engine = null;
+            }
+
+            elements.startBtn.disabled = false;
+            elements.stopBtn.disabled = true;
+            elements.extendBtn.disabled = true;
+            elements.idleTimeout.disabled = false;
+            elements.absoluteTimeout.disabled = false;
+            elements.warningBefore.disabled = false;
+
+            updateStatus('stopped');
+            hideWarningModal();
+            hideExpiredModal();
+        }
+
+        function extendSession() {
+            if (engine) {
+                engine.extendSession();
+                hideWarningModal();
+            }
+        }
+
+        function clearLog() {
+            eventLogEntries = [];
+            elements.eventLog.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Log cleared</div>';
+        }
+
+        // Event Listeners
+        elements.startBtn.addEventListener('click', startSession);
+        elements.stopBtn.addEventListener('click', stopSession);
+        elements.extendBtn.addEventListener('click', extendSession);
+        elements.clearLogBtn.addEventListener('click', clearLog);
+        elements.stayLoggedInBtn.addEventListener('click', extendSession);
+        elements.restartBtn.addEventListener('click', () => {
+            hideExpiredModal();
+            stopSession();
+            setTimeout(() => startSession(), 100);
+        });
+
+        // Close modals on background click
+        elements.warningModal.addEventListener('click', (e) => {
+            if (e.target === elements.warningModal) {
+                hideWarningModal();
+            }
+        });
+
+        elements.expiredModal.addEventListener('click', (e) => {
+            if (e.target === elements.expiredModal) {
+                hideExpiredModal();
+            }
+        });
+
+        console.log('🎉 Session Management Demo loaded!');
+        console.log('SessionEngine:', SessionEngine);
+        console.log('SessionEventType:', SessionEventType);
+    </script>
+</body>
+</html>

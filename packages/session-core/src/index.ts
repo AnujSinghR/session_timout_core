@@ -1,1 +1,1 @@
-export * from './lib/session-core.js';
+export * from './lib/session-core_v2.js';

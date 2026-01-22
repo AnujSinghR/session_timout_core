@@ -6,11 +6,19 @@
     "outDir": "../../apps/dist",
     "tsBuildInfoFile": "../../apps/dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "lib": ["es2017", "dom"],
+    "lib": [
+      "es2017",
+      "dom"
+    ],
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "importHelpers": false
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "references": [],
   "exclude": [
     "jest.config.ts",

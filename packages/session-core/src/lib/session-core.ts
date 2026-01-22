@@ -9,8 +9,7 @@ import {
   debounceTime,
   map,
   switchMap,
-  takeUntil,
-  throttleTime
+  takeUntil
 } from 'rxjs/operators';
 
 export type SessionState =
@@ -55,42 +54,11 @@ export class SessionCore {
   private bootstrap() {
     this.trackIdle();
     this.trackAbsoluteExpiry();
-    this.trackCrossTabSync();
+    this.trackCrossTabLogout();
   }
 
   private emit(state: SessionState) {
     this.state$.next(state);
-  }
-
-  /* ---------------- CROSS TAB SYNC ---------------- */
-
-  private trackCrossTabSync() {
-    if (!this.config.storageKey) return;
-
-    const storage$ = fromEvent<StorageEvent>(window, 'storage').pipe(
-      takeUntil(this.destroy$),
-      map(event => {
-        if (event.key !== this.config.storageKey) return null;
-        return event.newValue;
-      })
-    );
-
-    this.subscriptions.add(
-      storage$.subscribe(value => {
-        if (value === 'LOGOUT') {
-          this.emit('LOGGED_OUT');
-        } else if (value === 'ACTIVITY') {
-          // Received activity from another tab, reset idle timer by emitting ACTIVE
-          // But do NOT broadcast back to avoid loops
-          this.emit('ACTIVE');
-        }
-      })
-    );
-  }
-
-  private broadcast(value: string) {
-    if (!this.config.storageKey) return;
-    localStorage.setItem(this.config.storageKey, value);
   }
 
   /* ---------------- IDLE DETECTION ---------------- */
@@ -104,43 +72,17 @@ export class SessionCore {
       fromEvent(window, 'focus')
     );
 
-    const activitySignal$ = activity$.pipe(
-      debounceTime(200)
-    );
-
-    // Broadcast activity to other tabs, but throttle it to avoid thrashing localStorage
-    // Broadcast every 1s max
-    this.subscriptions.add(
-      activitySignal$.pipe(
-        throttleTime(1000)
-      ).subscribe(() => {
-        this.broadcast('ACTIVITY');
-      })
-    );
-
-    // Start with idle timer immediately, reset on activity
-    const idleTimer$ = merge(
-      timer(0), // Emit immediately to start initial timer
-      activitySignal$
-    ).pipe(
-      switchMap(() =>
-        timer(this.config.idleTimeoutMs).pipe(
-          map(() => 'IDLE' as SessionState)
-        )
-      ),
-      takeUntil(this.destroy$)
-    );
-
-    // Emit ACTIVE on activity (local)
-    const activeSignal$ = activitySignal$.pipe(
-      map(() => 'ACTIVE' as SessionState)
+    const idle$ = activity$.pipe(
+      debounceTime(500),
+      switchMap(() => timer(this.config.idleTimeoutMs)),
+      takeUntil(this.destroy$),
+      map(() => 'IDLE' as SessionState)
     );
 
     this.subscriptions.add(
-      merge(activeSignal$, idleTimer$).subscribe(state => this.emit(state))
+      idle$.subscribe(state => this.emit(state))
     );
   }
-
 
   /* ---------------- ABSOLUTE EXPIRY ---------------- */
 
@@ -153,6 +95,33 @@ export class SessionCore {
     this.subscriptions.add(
       expiry$.subscribe(state => this.emit(state))
     );
+  }
+
+  /* ---------------- CROSS TAB SYNC ---------------- */
+
+  private trackCrossTabLogout() {
+    if (!this.config.storageKey) return;
+
+    const storage$ = fromEvent<StorageEvent>(window, 'storage').pipe(
+      takeUntil(this.destroy$),
+      map(event =>
+        event.key === this.config.storageKey &&
+        event.newValue === 'LOGOUT'
+          ? 'LOGGED_OUT'
+          : null
+      )
+    );
+
+    this.subscriptions.add(
+      storage$.subscribe(state => {
+        if (state) this.emit(state);
+      })
+    );
+  }
+
+  private broadcast(value: string) {
+    if (!this.config.storageKey) return;
+    localStorage.setItem(this.config.storageKey, value);
   }
 
   private cleanup() {
