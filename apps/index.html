@@ -361,7 +361,7 @@
             <button class="btn-primary" id="startBtn">▶️ Start Session</button>
             <button class="btn-danger" id="stopBtn" disabled>⏹️ Stop Session</button>
             <button class="btn-success" id="extendBtn" disabled>⏰ Extend Session</button>
-            <button class="btn-warning" id="clearLogBtn">🗑️ Clear Log</button>
+            <!-- <button class="btn-warning" id="clearLogBtn">🗑️ Clear Log</button> -->
         </div>
 
         <div class="status-section">
@@ -369,14 +369,14 @@
             <div class="status-badge status-stopped" id="statusBadge">Stopped</div>
         </div>
 
-        <div class="status-section">
+        <!-- <div class="status-section">
             <h2>📝 Event Log</h2>
             <div class="event-log" id="eventLog">
                 <div style="color: #888; text-align: center; padding: 20px;">
                     Waiting for session to start...
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 
     <!-- Warning Modal -->
@@ -415,18 +415,19 @@
         import { SessionEngine, SessionEventType } from './dist/index.js';
 
         let engine = null;
-        let eventLogEntries = [];
+        let sessionStatus = undefined;
+       // let eventLogEntries = [];
 
         const elements = {
             startBtn: document.getElementById('startBtn'),
             stopBtn: document.getElementById('stopBtn'),
             extendBtn: document.getElementById('extendBtn'),
-            clearLogBtn: document.getElementById('clearLogBtn'),
+          //  clearLogBtn: document.getElementById('clearLogBtn'),
             idleTimeout: document.getElementById('idleTimeout'),
             absoluteTimeout: document.getElementById('absoluteTimeout'),
             warningBefore: document.getElementById('warningBefore'),
             statusBadge: document.getElementById('statusBadge'),
-            eventLog: document.getElementById('eventLog'),
+          //  eventLog: document.getElementById('eventLog'),
             warningModal: document.getElementById('warningModal'),
             expiredModal: document.getElementById('expiredModal'),
             remainingTime: document.getElementById('remainingTime'),
@@ -463,6 +464,7 @@
                     message = `🔄 TOKEN_REFRESHED`;
                     break;
                 case SessionEventType.SESSION_SYNCED:
+                    console.log("broadcasted");
                     cssClass = 'event-synced';
                     message = `🔗 SESSION_SYNCED - From another tab (${event.syncType})`;
                     if (event.syncType === 'expired') {
@@ -479,8 +481,8 @@
                 </div>
             `;
 
-            eventLogEntries.unshift(entry);
-            elements.eventLog.innerHTML = eventLogEntries.join('');
+          //  eventLogEntries.unshift(entry);
+          //elements.eventLog.innerHTML = eventLogEntries.join('');
             
             console.log(`[SessionEngine] ${message}`, event);
         }
@@ -491,14 +493,19 @@
                 case 'active':
                     elements.statusBadge.classList.add('status-active');
                     elements.statusBadge.textContent = '✅ Active';
+                    sessionStatus = "Active";
+                    hideWarningModal();
                     break;
                 case 'warning':
                     elements.statusBadge.classList.add('status-warning');
                     elements.statusBadge.textContent = '⚠️ Warning - Expiring Soon';
+                    sessionStatus = "Idle";
                     break;
                 case 'expired':
                     elements.statusBadge.classList.add('status-expired');
                     elements.statusBadge.textContent = '🔴 Expired';
+                    sessionStatus = "Expired";
+
                     break;
                 default:
                     elements.statusBadge.classList.add('status-stopped');
@@ -584,18 +591,19 @@
                 engine.extendSession();
                 hideWarningModal();
             }
+           
         }
 
-        function clearLog() {
-            eventLogEntries = [];
-            elements.eventLog.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Log cleared</div>';
-        }
+        // function clearLog() {
+        //     eventLogEntries = [];
+        //     elements.eventLog.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Log cleared</div>';
+        // }
 
         // Event Listeners
         elements.startBtn.addEventListener('click', startSession);
         elements.stopBtn.addEventListener('click', stopSession);
         elements.extendBtn.addEventListener('click', extendSession);
-        elements.clearLogBtn.addEventListener('click', clearLog);
+       // elements.clearLogBtn.addEventListener('click', clearLog);
         elements.stayLoggedInBtn.addEventListener('click', extendSession);
         elements.restartBtn.addEventListener('click', () => {
             hideExpiredModal();

@@ -223,11 +223,14 @@ export class SessionEngine {
                     timestamp: Date.now(),
                     payload: { remainingMs: event.remainingMs }
                 });
-            } else if (event.type === SessionEventType.SESSION_EXPIRED) {
+            }
+            if (event.type === SessionEventType.SESSION_EXPIRED) {
                 this.crossTabSync.broadcast({
                     type: 'expired',
                     timestamp: Date.now()
                 });
+
+                this.stop();
             }
         });
 
@@ -238,6 +241,7 @@ export class SessionEngine {
                 type: 'expired',
                 timestamp: Date.now()
             });
+            this.stop();
         });
 
         // Emit ACTIVE on activity
