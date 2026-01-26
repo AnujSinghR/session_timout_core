@@ -464,7 +464,6 @@
                     message = `🔄 TOKEN_REFRESHED`;
                     break;
                 case SessionEventType.SESSION_SYNCED:
-                    console.log("broadcasted");
                     cssClass = 'event-synced';
                     message = `🔗 SESSION_SYNCED - From another tab (${event.syncType})`;
                     if (event.syncType === 'expired') {
@@ -494,7 +493,6 @@
                     elements.statusBadge.classList.add('status-active');
                     elements.statusBadge.textContent = '✅ Active';
                     sessionStatus = "Active";
-                    hideWarningModal();
                     break;
                 case 'warning':
                     elements.statusBadge.classList.add('status-warning');

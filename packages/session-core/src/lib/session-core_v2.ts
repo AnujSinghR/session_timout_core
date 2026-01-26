@@ -164,11 +164,15 @@ export class CrossTabSync {
 
 // 5. SESSION ENGINE (Main Class)
 
+export type SessionPhase = 'ACTIVE' | 'WARNING' | 'EXPIRED';
+
 export class SessionEngine {
     private readonly policy: SessionPolicy;
     private readonly eventSubject: BehaviorSubject<SessionEvent>;
     private readonly destroySubject = new Subject<void>();
+    private resetIdle$ = new Subject<void>();
     private readonly crossTabSync: CrossTabSync;
+    private phase: SessionPhase = 'ACTIVE';
 
     private isStarted = false;
 
@@ -196,13 +200,14 @@ export class SessionEngine {
         this.isStarted = true;
 
         // Track user activity
-        const activity$ = createActivityStream(500);
+        const activity$ = createActivityStream(500).pipe(
+            filter(() => this.phase === 'ACTIVE' && this.isStarted)
+        );
 
         // Idle timeout logic: reset on every activity
-        const idleTimeout$ = activity$.pipe(
-            switchMap(() => {
-                return this.createIdleTimeoutStream();
-            }),
+        const idleTimeout$ = merge(activity$, this.resetIdle$).pipe(
+            filter(() => this.phase === 'ACTIVE'),
+            switchMap(() => this.createIdleTimeoutStream()),
             takeUntil(this.destroySubject)
         );
 
@@ -223,13 +228,14 @@ export class SessionEngine {
                     timestamp: Date.now(),
                     payload: { remainingMs: event.remainingMs }
                 });
+                this.phase = 'WARNING';
             }
             if (event.type === SessionEventType.SESSION_EXPIRED) {
                 this.crossTabSync.broadcast({
                     type: 'expired',
                     timestamp: Date.now()
                 });
-
+                this.phase = 'EXPIRED';
                 this.stop();
             }
         });
@@ -293,6 +299,14 @@ export class SessionEngine {
             console.warn('Cannot extend session: engine not started');
             return;
         }
+
+        if (this.phase !== 'WARNING') {
+            return;
+        }
+
+        this.phase = 'ACTIVE';
+
+        this.resetIdle$.next();
 
         this.emitEvent({
             type: SessionEventType.ACTIVE,
@@ -372,17 +386,33 @@ export class SessionEngine {
      * Handle sync messages from other tabs
      */
     private handleSyncMessage(msg: SyncMessage): void {
-        const syncEvent: SessionSyncedEvent = {
-            type: SessionEventType.SESSION_SYNCED,
-            timestamp: Date.now(),
-            syncType: msg.type
-        };
+        // EXPIRED is terminal
+        if (this.phase === 'EXPIRED') return;
 
-        this.emitEvent(syncEvent);
+        // WARNING cannot be cancelled by activity
+        if (this.phase === 'WARNING' && msg.type === 'activity') return;
 
-        // React to specific sync types
+        if (msg.type === 'activity' && this.phase === 'ACTIVE') {
+            this.emitEvent({
+                type: SessionEventType.ACTIVE,
+                timestamp: msg.timestamp
+            });
+        }
+
+        if (msg.type === 'warning' && this.phase === 'ACTIVE') {
+            this.phase = 'WARNING';
+
+            this.emitEvent({
+                type: SessionEventType.IDLE_WARNING,
+                timestamp: msg.timestamp,
+                remainingMs: msg.payload!.remainingMs!
+            });
+        }
+
         if (msg.type === 'expired') {
+            this.phase = 'EXPIRED';
             this.emitEvent(this.createExpiredEvent('idle'));
+            this.stop();
         }
     }
 
